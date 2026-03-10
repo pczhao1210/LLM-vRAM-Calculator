@@ -1,0 +1,877 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  font-family: 'IBM Plex Sans', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #e6edf6;
+  background:
+    radial-gradient(circle at top left, rgba(60, 144, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 85% 20%, rgba(255, 174, 74, 0.16), transparent 24%),
+    linear-gradient(135deg, #07111d 0%, #0d1827 35%, #101d2f 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --panel: rgba(7, 16, 28, 0.72);
+  --panel-strong: rgba(7, 16, 28, 0.86);
+  --panel-border: rgba(148, 177, 212, 0.14);
+  --ink-soft: #a8b7c9;
+  --ink-strong: #f4f8ff;
+  --accent: #6ec8ff;
+  --accent-strong: #ffb357;
+  --success: #83f0bf;
+  --danger: #ff8c89;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 32px;
+}
+
+.ambient {
+  position: fixed;
+  width: 32rem;
+  height: 32rem;
+  border-radius: 999px;
+  filter: blur(24px);
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.ambient-left {
+  inset: 12rem auto auto -10rem;
+  background: radial-gradient(circle, rgba(90, 170, 255, 0.55), transparent 70%);
+}
+
+.ambient-right {
+  inset: auto -8rem 4rem auto;
+  background: radial-gradient(circle, rgba(255, 164, 76, 0.45), transparent 70%);
+}
+
+.panel {
+  position: relative;
+  border: 1px solid var(--panel-border);
+  background: linear-gradient(180deg, rgba(13, 22, 35, 0.88), rgba(6, 14, 24, 0.78));
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 28px;
+  padding: 36px;
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(125deg, rgba(110, 200, 255, 0.08), transparent 45%),
+    linear-gradient(320deg, rgba(255, 179, 87, 0.1), transparent 35%);
+  pointer-events: none;
+}
+
+.hero-copy,
+.hero-aside,
+.section-panel,
+.recommendation-card,
+.platform-card,
+.catalog-card,
+.metric-card,
+.empty-state {
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrow,
+.section-head p,
+.micro-note,
+.metric-card p,
+.catalog-card p,
+.recommendation-card p,
+
+.compatibility-alert {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 179, 87, 0.34);
+  background: linear-gradient(135deg, rgba(58, 34, 11, 0.82), rgba(34, 18, 8, 0.72));
+  box-shadow: inset 0 1px 0 rgba(255, 220, 162, 0.08);
+}
+
+.compatibility-alert strong {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.92rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-weight: 700;
+  color: #ffd08a;
+}
+
+.compatibility-alert p {
+  margin: 0;
+  color: #ffe8c7;
+  font-size: 0.94rem;
+}
+
+.compatibility-alert-warning {
+  border-color: rgba(255, 179, 87, 0.4);
+}
+.platform-card p,
+.notes-stack p {
+  color: var(--ink-soft);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.8rem;
+}
+
+h1,
+h2,
+strong {
+  color: var(--ink-strong);
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-family: 'Bricolage Grotesque', sans-serif;
+}
+
+h1 {
+  max-width: 14ch;
+  font-size: clamp(2.5rem, 4.8vw, 5rem);
+  line-height: 0.96;
+}
+
+h2 {
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+}
+
+.hero-text {
+  max-width: 62ch;
+  margin: 18px 0 0;
+  color: #d4dfec;
+  font-size: 1rem;
+}
+
+.hero-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.hero-metrics div,
+.stat-card,
+.metric-card,
+.recommendation-card,
+.platform-card,
+.catalog-card,
+.empty-state {
+  border-radius: 22px;
+  border: 1px solid rgba(149, 180, 216, 0.14);
+  background: rgba(8, 17, 30, 0.62);
+}
+
+.hero-metrics div {
+  min-width: 140px;
+  padding: 16px 18px;
+}
+
+.hero-metrics span,
+.stat-card span,
+.metric-card > span,
+.catalog-card span,
+.bar-label span,
+.recommendation-head span {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hero-metrics strong,
+.stat-card strong,
+.metric-card strong,
+.catalog-card strong,
+.recommendation-head strong,
+.platform-card strong,
+.empty-state strong {
+  display: block;
+  margin-top: 8px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.hero-aside {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.language-switch {
+  margin-top: 0;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(149, 180, 216, 0.14);
+  background: rgba(8, 17, 30, 0.62);
+}
+
+.language-switch span {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.language-switch select {
+  min-height: 44px;
+}
+
+.stat-card,
+.metric-card,
+.recommendation-card,
+.platform-card,
+.catalog-card,
+.empty-state {
+  padding: 20px;
+}
+
+.accent-card {
+  background: linear-gradient(155deg, rgba(17, 40, 60, 0.88), rgba(9, 17, 28, 0.72));
+  border-color: rgba(110, 200, 255, 0.22);
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(310px, 420px) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.input-column,
+.output-column {
+  display: grid;
+  gap: 24px;
+  align-content: start;
+}
+
+.section-panel {
+  border-radius: 26px;
+  padding: 24px;
+}
+
+.panel-order-early {
+  order: 1;
+}
+
+.panel-order-late {
+  order: 2;
+}
+
+.section-head {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.section-head p,
+.metric-card p,
+.hero-aside p,
+.recommendation-card p,
+.catalog-card p,
+.platform-card p,
+.notes-stack p,
+.empty-state p {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.segmented,
+.option-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.option-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.segmented button,
+.option-strip button {
+  min-height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(125, 156, 194, 0.14);
+  background: rgba(9, 18, 31, 0.78);
+  color: #d7e1ee;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.segmented button:hover,
+.option-strip button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(110, 200, 255, 0.34);
+}
+
+.segmented .active,
+.option-strip .active {
+  border-color: rgba(110, 200, 255, 0.45);
+  background: linear-gradient(135deg, rgba(23, 52, 81, 0.98), rgba(14, 29, 45, 0.88));
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  color: #dce6f4;
+  font-size: 0.95rem;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(125, 156, 194, 0.16);
+  background: rgba(6, 12, 22, 0.84);
+  color: #edf4ff;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: rgba(110, 200, 255, 0.52);
+  box-shadow: 0 0 0 3px rgba(110, 200, 255, 0.12);
+}
+
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.field-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.two-up {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.three-up {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sub-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(125, 156, 194, 0.12);
+  background: rgba(4, 10, 18, 0.5);
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.checkbox-field input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--accent);
+}
+
+.inline-toggle {
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.single-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.breakdown-bars {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.bar-row {
+  display: grid;
+  gap: 8px;
+}
+
+.bar-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.bar-label strong,
+.recommendation-head em {
+  font-family: 'IBM Plex Mono', monospace;
+  font-style: normal;
+  font-size: 0.95rem;
+  color: #dce6f4;
+}
+
+.bar-track {
+  overflow: hidden;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+}
+
+.notes-stack {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.notes-stack p,
+.micro-note {
+  padding-left: 14px;
+  border-left: 2px solid rgba(110, 200, 255, 0.34);
+}
+
+.recommendation-grid,
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.recommendation-toolbar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.recommendation-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.recommendation-group {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(149, 180, 216, 0.14);
+  background: rgba(8, 17, 30, 0.52);
+}
+
+.recommendation-group-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.recommendation-group-toggle,
+.recommendation-row-summary {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.recommendation-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.recommendation-group-title-row,
+.hardware-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.hardware-title strong {
+  margin-top: 0;
+  line-height: 1.04;
+}
+
+.hardware-title-selected {
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 16px;
+}
+
+.hardware-title-selected strong {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.unit-count-badge-selected {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.metric-card > .hardware-title + p {
+  margin-top: 10px;
+}
+
+.recommendation-group-actions,
+.recommendation-row-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.accordion-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(110, 200, 255, 0.24);
+  background: rgba(14, 29, 45, 0.72);
+  color: var(--ink-strong);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.recommendation-group-head h3 {
+  margin: 6px 0 0;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.3rem;
+  color: var(--ink-strong);
+}
+
+.recommendation-list {
+  display: grid;
+  gap: 12px;
+}
+
+.recommendation-row {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(149, 180, 216, 0.14);
+  background: rgba(5, 12, 22, 0.64);
+}
+
+.recommendation-row-details {
+  display: grid;
+  gap: 14px;
+}
+
+.recommendation-row-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.recommendation-row-top strong {
+  margin-top: 8px;
+  font-size: 1.4rem;
+}
+
+.recommendation-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.recommendation-chip,
+.recommendation-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(110, 200, 255, 0.2);
+  background: rgba(14, 29, 45, 0.78);
+  color: #dce6f4;
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.unit-count-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 48px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 179, 87, 0.26);
+  background: linear-gradient(135deg, rgba(68, 44, 17, 0.88), rgba(32, 21, 9, 0.88));
+  color: #ffe0b2;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.86rem;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.muted-badge {
+  border-color: rgba(110, 200, 255, 0.2);
+  background: rgba(14, 29, 45, 0.78);
+  color: #dce6f4;
+}
+
+.recommendation-badge {
+  background: linear-gradient(135deg, rgba(32, 78, 112, 0.95), rgba(19, 36, 54, 0.85));
+  border-color: rgba(110, 200, 255, 0.4);
+}
+
+.recommendation-badge.is-recommended {
+  border-color: rgba(131, 240, 191, 0.42);
+  background: linear-gradient(135deg, rgba(21, 72, 56, 0.96), rgba(15, 34, 28, 0.88));
+  color: #dfffee;
+}
+
+.recommendation-badge.is-tight {
+  border-color: rgba(255, 179, 87, 0.4);
+  background: linear-gradient(135deg, rgba(90, 57, 17, 0.95), rgba(37, 24, 10, 0.88));
+  color: #ffe5c2;
+}
+
+.recommendation-badge.is-testOnly {
+  border-color: rgba(255, 140, 137, 0.4);
+  background: linear-gradient(135deg, rgba(93, 38, 41, 0.95), rgba(34, 18, 20, 0.88));
+  color: #ffe0de;
+}
+
+.risk-low,
+.risk-medium,
+.risk-high {
+  text-transform: none;
+}
+
+.risk-low {
+  border-color: rgba(131, 240, 191, 0.36);
+}
+
+.risk-medium {
+  border-color: rgba(255, 179, 87, 0.36);
+}
+
+.risk-high {
+  border-color: rgba(255, 140, 137, 0.36);
+}
+
+.recommendation-data {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.recommendation-data.five-up {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.recommendation-data div {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.recommendation-data strong {
+  font-size: 1.15rem;
+}
+
+.interconnect-callout {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(110, 200, 255, 0.16);
+  background: linear-gradient(135deg, rgba(12, 26, 41, 0.88), rgba(7, 17, 28, 0.8));
+}
+
+.interconnect-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.interconnect-head strong {
+  margin-top: 8px;
+  font-size: 1.15rem;
+}
+
+.recommendation-head,
+.recommendation-metrics {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.recommendation-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 16px 0;
+}
+
+.recommendation-metrics div,
+.catalog-card,
+.metric-card {
+  display: grid;
+  gap: 6px;
+}
+
+.recommendation-metrics strong,
+.catalog-card strong,
+.metric-card strong,
+.platform-card strong {
+  font-size: 1.3rem;
+}
+
+.platform-card {
+  display: grid;
+  gap: 10px;
+}
+
+.empty-state {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (max-width: 1100px) {
+  .workspace-grid,
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-grid,
+  .single-row,
+  .recommendation-grid,
+  .catalog-grid,
+  .recommendation-toolbar,
+  .recommendation-data,
+  .recommendation-data.five-up {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 18px;
+  }
+
+  .hero,
+  .section-panel {
+    padding: 20px;
+  }
+
+  .metric-grid,
+  .single-row,
+  .recommendation-grid,
+  .catalog-grid,
+  .recommendation-toolbar,
+  .segmented,
+  .option-strip,
+  .two-up,
+  .three-up,
+  .recommendation-metrics,
+  .recommendation-data,
+  .recommendation-data.five-up {
+    grid-template-columns: 1fr;
+  }
+
+  .recommendation-row-top,
+  .recommendation-group-head,
+  .recommendation-group-toggle,
+  .interconnect-head {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .hero-metrics {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
