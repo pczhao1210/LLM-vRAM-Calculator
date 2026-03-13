@@ -20,9 +20,12 @@ import {
 } from './lib/calculator'
 import type {
   CalculatorDirection,
+  CloudGpuInstance,
+  CloudProvider,
   ConfigSimulation,
   DeploymentMode,
   EstimateProfile,
+  GpuProfile,
   ModelPreset,
   QuantizationSupportLevel,
 } from './types'
@@ -96,6 +99,42 @@ function formatUnitCount(units: number) {
   return `${units}x`
 }
 
+function formatCloudProvider(provider: CloudProvider, locale: 'zh' | 'en') {
+  switch (provider) {
+    case 'aws':
+      return 'AWS'
+    case 'azure':
+      return 'Azure'
+    case 'gcp':
+      return locale === 'zh' ? 'GCP' : 'GCP'
+    case 'oracle':
+      return locale === 'zh' ? 'Oracle Cloud' : 'Oracle Cloud'
+    default:
+      return provider
+  }
+}
+
+function formatCloudInstance(item: CloudGpuInstance, locale: 'zh' | 'en') {
+  const suffix = locale === 'zh' ? `${item.memoryPerGpuGB} GB / GPU` : `${item.memoryPerGpuGB} GB per GPU`
+  return `${formatCloudProvider(item.provider, locale)} · ${item.instanceType} · ${suffix}${item.notes ? ` · ${item.notes}` : ''}`
+}
+
+function renderCloudInstances(gpu: GpuProfile, locale: 'zh' | 'en') {
+  if (!gpu.cloudInstances?.length) {
+    return null
+  }
+
+  return (
+    <div className="notes-stack">
+      {gpu.cloudInstances.map((item) => (
+        <p key={`${gpu.id}-${item.provider}-${item.instanceType}`} className="micro-note">
+          {formatCloudInstance(item, locale)}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 function compareModelName(left: ModelPreset, right: ModelPreset) {
   return left.name.localeCompare(right.name, undefined, {
     numeric: true,
@@ -132,24 +171,29 @@ function buildModelGroups(searchTerm: string) {
 }
 
 function App() {
-  const [locale, setLocale] = useState<'zh' | 'en'>(detectBrowserLocale())
-  const [direction, setDirection] = useState<CalculatorDirection>('model-to-gpu')
-  const [useCustomModel, setUseCustomModel] = useState(false)
-  const [selectedModelId, setSelectedModelId] = useState(defaultModelSelectionId)
+  const [copySuccess, setCopySuccess] = useState(false)
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
+
+  const [locale, setLocale] = useState<'zh' | 'en'>((searchParams.get('locale') as 'zh' | 'en') || detectBrowserLocale())
+  const [direction, setDirection] = useState<CalculatorDirection>((searchParams.get('direction') as CalculatorDirection) || 'model-to-gpu')
+  const [useCustomModel, setUseCustomModel] = useState(searchParams.get('custom') === 'true')
+  const [selectedModelId, setSelectedModelId] = useState(searchParams.get('modelId') || defaultModelSelectionId)
   const [modelSearch, setModelSearch] = useState('')
   const [customModel, setCustomModel] = useState<ModelPreset>(defaultCustomModel)
-  const [quantizationId, setQuantizationId] = useState(defaultModelSelection.defaultQuantizationId)
-  const [contextTokens, setContextTokens] = useState(defaultModelSelection.defaultContext)
-  const [contextPreset, setContextPreset] = useState(resolveContextPreset(defaultModelSelection.defaultContext))
-  const [concurrency, setConcurrency] = useState(4)
-  const [deploymentMode, setDeploymentMode] = useState<DeploymentMode>('inference')
-  const [estimateProfile, setEstimateProfile] = useState<EstimateProfile>('balanced')
-  const [trainSequenceLength, setTrainSequenceLength] = useState(2048)
-  const [microBatchSize, setMicroBatchSize] = useState(2)
-  const [loraRank, setLoraRank] = useState(16)
-  const [checkpointing, setCheckpointing] = useState(true)
-  const [selectedGpuId, setSelectedGpuId] = useState('h100-80gb')
-  const [gpuUnits, setGpuUnits] = useState(2)
+
+  const initialModel = getModelById(searchParams.get('modelId') || defaultModelSelectionId) || defaultModelSelection
+  const [quantizationId, setQuantizationId] = useState(searchParams.get('quantId') || initialModel.defaultQuantizationId)
+  const [contextTokens, setContextTokens] = useState(Number(searchParams.get('ctx')) || initialModel.defaultContext)
+  const [contextPreset, setContextPreset] = useState(resolveContextPreset(Number(searchParams.get('ctx')) || initialModel.defaultContext))
+  const [concurrency, setConcurrency] = useState(Number(searchParams.get('conc')) || 4)
+  const [deploymentMode, setDeploymentMode] = useState<DeploymentMode>((searchParams.get('mode') as DeploymentMode) || 'inference')
+  const [estimateProfile, setEstimateProfile] = useState<EstimateProfile>((searchParams.get('profile') as EstimateProfile) || 'balanced')
+  const [trainSequenceLength, setTrainSequenceLength] = useState(Number(searchParams.get('trainSeq')) || 2048)
+  const [microBatchSize, setMicroBatchSize] = useState(Number(searchParams.get('mbs')) || 2)
+  const [loraRank, setLoraRank] = useState(Number(searchParams.get('rank')) || 16)
+  const [checkpointing, setCheckpointing] = useState(searchParams.get('ckpt') !== 'false')
+  const [selectedGpuId, setSelectedGpuId] = useState(searchParams.get('gpuId') || 'h100-80gb')
+  const [gpuUnits, setGpuUnits] = useState(Number(searchParams.get('gpuUnits')) || 2)
   const [recommendationTierFilter, setRecommendationTierFilter] = useState<'all' | 'workstation' | 'datacenter'>('all')
   const [recommendationUnitFilter, setRecommendationUnitFilter] = useState('all')
   const [recommendationGpuSearch, setRecommendationGpuSearch] = useState('')
@@ -263,6 +307,48 @@ function App() {
     }))
   }
 
+  function handleCopyReport() {
+    const report = `
+**[${locale === 'zh' ? 'LLM 显存估算报告 / LLM VRAM Estimation Report' : 'LLM VRAM Estimation Report'}]**
+- **${locale === 'zh' ? '模型 / Model' : 'Model'}**: ${activeModel.name} (${formatParams(activeModel.parameterCountB)} / ${activeModel.layers} layers)
+- **${locale === 'zh' ? '量化 / Quantization' : 'Quantization'}**: ${quantization.label}
+- **${locale === 'zh' ? '上下文 / Context Length' : 'Context Length'}**: ${formatCompact(contextTokens)}
+- **${locale === 'zh' ? '并发数 / Concurrency' : 'Concurrency'}**: ${concurrency}
+- **${locale === 'zh' ? '预估总显存 / Estimated Total VRAM' : 'Estimated Total VRAM'}**: ${formatGb(breakdown.totalMemoryGB)}
+  - ${locale === 'zh' ? '模型权重 / Weights' : 'Weights'}: ${formatGb(breakdown.weightMemoryGB)}
+  - ${locale === 'zh' ? 'KV缓存 / KV Cache' : 'KV Cache'}: ${formatGb(breakdown.kvCacheMemoryGB)}
+  - ${locale === 'zh' ? '激活与运行时 / Runtime' : 'Runtime'}: ${formatGb(breakdown.runtimeMemoryGB)}
+  - ${locale === 'zh' ? '训练开销 / Tuning Extra' : 'Tuning Extra'}: ${formatGb(breakdown.tuningMemoryGB)}
+- **${locale === 'zh' ? '链接 / Link' : 'Link'}**: ${window.location.href}
+`.trim()
+
+    navigator.clipboard.writeText(report).then(() => {
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    })
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (direction !== 'model-to-gpu') params.set('direction', direction)
+    if (useCustomModel) params.set('custom', 'true')
+    if (selectedModelId !== defaultModelSelectionId) params.set('modelId', selectedModelId)
+    params.set('quantId', quantizationId)
+    params.set('ctx', contextTokens.toString())
+    if (concurrency !== 4) params.set('conc', concurrency.toString())
+    if (deploymentMode !== 'inference') params.set('mode', deploymentMode)
+    if (estimateProfile !== 'balanced') params.set('profile', estimateProfile)
+    if (locale !== 'zh') params.set('locale', locale)
+    if (selectedGpuId !== 'h100-80gb') params.set('gpuId', selectedGpuId)
+    if (gpuUnits !== 2) params.set('gpuUnits', gpuUnits.toString())
+
+    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`
+    window.history.replaceState({}, '', newUrl)
+  }, [
+    direction, useCustomModel, selectedModelId, quantizationId, contextTokens,
+    concurrency, deploymentMode, estimateProfile, locale, selectedGpuId, gpuUnits
+  ])
+
   useEffect(() => {
     document.title = text.pageTitle
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en'
@@ -348,6 +434,29 @@ function App() {
             <strong>{formatGb(breakdown.totalMemoryGB)}</strong>
             <p>{text.currentWorkloadDescription}</p>
           </div>
+          
+          <button 
+            type="button"
+            onClick={handleCopyReport} 
+            style={{ 
+              width: '100%', 
+              marginTop: '16px', 
+              padding: '12px', 
+              background: copySuccess ? 'var(--green-500, #10b981)' : 'var(--accent-color, #3b82f6)', 
+              color: '#fff', 
+              border: 'none', 
+              borderRadius: '8px', 
+              cursor: 'pointer', 
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'background-color 0.2s'
+            }}
+          >
+            {copySuccess ? (locale === 'zh' ? '✅ 已复制链接与报告' : '✅ Copied URL & Report') : (locale === 'zh' ? '📋 分享 / 复制报告' : '📋 Auto-Share & Copy Report')}
+          </button>
         </div>
       </header>
 
@@ -454,13 +563,18 @@ function App() {
                           type="number"
                           min={1}
                           step={0.5}
-                          value={customModel.parameterCountB}
+                          value={customModel.parameterCountB || ''}
                           onChange={(event) =>
                             setCustomModel((current) => ({
                               ...current,
-                              parameterCountB: Number(event.target.value) || 1,
+                              parameterCountB: event.target.value === '' ? 0 : Number(event.target.value),
                             }))
                           }
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 1) {
+                              setCustomModel((current) => ({ ...current, parameterCountB: 1 }))
+                            }
+                          }}
                         />
                       </label>
                     </div>
@@ -471,10 +585,18 @@ function App() {
                         <input
                           type="number"
                           min={1}
-                          value={customModel.layers}
+                          value={customModel.layers || ''}
                           onChange={(event) =>
-                            setCustomModel((current) => ({ ...current, layers: Number(event.target.value) || 1 }))
+                            setCustomModel((current) => ({
+                              ...current,
+                              layers: event.target.value === '' ? 0 : Number(event.target.value),
+                            }))
                           }
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 1) {
+                              setCustomModel((current) => ({ ...current, layers: 1 }))
+                            }
+                          }}
                         />
                       </label>
                       <label>
@@ -483,13 +605,18 @@ function App() {
                           type="number"
                           min={128}
                           step={128}
-                          value={customModel.hiddenSize}
+                          value={customModel.hiddenSize || ''}
                           onChange={(event) =>
                             setCustomModel((current) => ({
                               ...current,
-                              hiddenSize: Number(event.target.value) || 128,
+                              hiddenSize: event.target.value === '' ? 0 : Number(event.target.value),
                             }))
                           }
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 128) {
+                              setCustomModel((current) => ({ ...current, hiddenSize: 128 }))
+                            }
+                          }}
                         />
                       </label>
                       <label>
@@ -497,10 +624,18 @@ function App() {
                         <input
                           type="number"
                           min={1}
-                          value={customModel.kvHeads}
+                          value={customModel.kvHeads || ''}
                           onChange={(event) =>
-                            setCustomModel((current) => ({ ...current, kvHeads: Number(event.target.value) || 1 }))
+                            setCustomModel((current) => ({
+                              ...current,
+                              kvHeads: event.target.value === '' ? 0 : Number(event.target.value),
+                            }))
                           }
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 1) {
+                              setCustomModel((current) => ({ ...current, kvHeads: 1 }))
+                            }
+                          }}
                         />
                       </label>
                     </div>
@@ -512,10 +647,18 @@ function App() {
                           type="number"
                           min={32}
                           step={32}
-                          value={customModel.headDim}
+                          value={customModel.headDim || ''}
                           onChange={(event) =>
-                            setCustomModel((current) => ({ ...current, headDim: Number(event.target.value) || 32 }))
+                            setCustomModel((current) => ({
+                              ...current,
+                              headDim: event.target.value === '' ? 0 : Number(event.target.value),
+                            }))
                           }
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 32) {
+                              setCustomModel((current) => ({ ...current, headDim: 32 }))
+                            }
+                          }}
                         />
                       </label>
                       <label>
@@ -524,13 +667,18 @@ function App() {
                           type="number"
                           min={1024}
                           step={1024}
-                          value={customModel.maxContext}
+                          value={customModel.maxContext || ''}
                           onChange={(event) =>
                             setCustomModel((current) => ({
                               ...current,
-                              maxContext: Number(event.target.value) || 1024,
+                              maxContext: event.target.value === '' ? 0 : Number(event.target.value),
                             }))
                           }
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 1024) {
+                              setCustomModel((current) => ({ ...current, maxContext: 1024 }))
+                            }
+                          }}
                         />
                       </label>
                     </div>
@@ -576,53 +724,115 @@ function App() {
                   </>
                 ) : null}
 
-                <div className="field-grid two-up">
+                <div className="field-grid">
                   <label>
-                    {text.labels.contextPreset}
-                    <select
-                      value={contextPreset}
-                      onChange={(event) => {
-                        const nextPreset = event.target.value
-                        setContextPreset(nextPreset)
-                        if (nextPreset !== 'custom') {
-                          setContextTokens(Number(nextPreset))
-                        }
-                      }}
-                    >
+                    <div style={{ marginBottom: '8px' }}>{text.labels.contextPreset}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {supportedContextPresetOptions.map((value) => (
-                        <option key={value} value={value}>
-                          {formatCompact(value)} tokens
-                        </option>
+                        <button
+                          key={value}
+                          type="button"
+                          className={contextPreset === String(value) ? 'active' : ''}
+                          onClick={() => {
+                            setContextPreset(String(value))
+                            setContextTokens(value)
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '16px',
+                            border: '1px solid var(--border-light, #e5e7eb)',
+                            background: contextPreset === String(value) ? 'var(--blue-500, #3b82f6)' : 'var(--bg-panel, #ffffff)',
+                            color: contextPreset === String(value) ? '#fff' : 'var(--text-main, #111827)',
+                            cursor: 'pointer',
+                            fontSize: '13px'
+                          }}
+                        >
+                          {formatCompact(value)}
+                        </button>
                       ))}
-                      <option value="custom">{text.labels.contextCustomOption}</option>
-                    </select>
+                      <button
+                        type="button"
+                        className={contextPreset === 'custom' ? 'active' : ''}
+                        onClick={() => setContextPreset('custom')}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '16px',
+                          border: '1px solid var(--border-light, #e5e7eb)',
+                          background: contextPreset === 'custom' ? 'var(--blue-500, #3b82f6)' : 'var(--bg-panel, #ffffff)',
+                          color: contextPreset === 'custom' ? '#fff' : 'var(--text-main, #111827)',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        {text.labels.contextCustomOption}
+                      </button>
+                    </div>
                   </label>
-                  <label>
-                    {contextPreset === 'custom' ? text.labels.customContextTokens : text.labels.currentContextTokens}
-                    <input
-                      type="number"
-                      min={1024}
-                      max={activeModel.maxContext}
-                      step={1024}
-                      value={contextTokens}
-                      disabled={contextPreset !== 'custom'}
-                      onChange={(event) =>
-                        setContextTokens(Math.min(Number(event.target.value) || 1024, activeModel.maxContext))
-                      }
-                    />
-                  </label>
+                  
+                  {contextPreset === 'custom' && (
+                    <label style={{ marginTop: '16px', display: 'block' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span>{text.labels.customContextTokens}</span>
+                        <strong>{contextTokens}</strong>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <input
+                          type="range"
+                          min={1024}
+                          max={activeModel.maxContext}
+                          step={1024}
+                          value={contextTokens || 1024}
+                          onChange={(event) =>
+                            setContextTokens(Math.min(Number(event.target.value), activeModel.maxContext))
+                          }
+                          style={{ flex: 1 }}
+                        />
+                        <input
+                          type="number"
+                          min={1024}
+                          max={activeModel.maxContext}
+                          step={1024}
+                          value={contextTokens || ''}
+                          onChange={(event) =>
+                            setContextTokens(event.target.value === '' ? 0 : Math.min(Number(event.target.value), activeModel.maxContext))
+                          }
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 1024) setContextTokens(1024)
+                          }}
+                          style={{ width: '100px' }}
+                        />
+                      </div>
+                    </label>
+                  )}
                 </div>
 
-                <div className="field-grid two-up">
+                <div className="field-grid">
                   <label>
-                    {text.labels.concurrency}
-                    <input
-                      type="number"
-                      min={1}
-                      max={128}
-                      value={concurrency}
-                      onChange={(event) => setConcurrency(Number(event.target.value) || 1)}
-                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span>{text.labels.concurrency}</span>
+                      <strong>{concurrency || 1}</strong>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <input
+                        type="range"
+                        min={1}
+                        max={128}
+                        value={concurrency || 1}
+                        onChange={(event) => setConcurrency(Number(event.target.value))}
+                        style={{ flex: 1 }}
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        max={1024}
+                        value={concurrency || ''}
+                        onChange={(event) => setConcurrency(event.target.value === '' ? 0 : Number(event.target.value))}
+                        onBlur={(event) => {
+                          if (!event.target.value || Number(event.target.value) < 1) setConcurrency(1)
+                        }}
+                        style={{ width: '80px' }}
+                      />
+                    </div>
                   </label>
                 </div>
 
@@ -661,8 +871,11 @@ function App() {
                           type="number"
                           min={512}
                           step={512}
-                          value={trainSequenceLength}
-                          onChange={(event) => setTrainSequenceLength(Number(event.target.value) || 512)}
+                          value={trainSequenceLength || ''}
+                          onChange={(event) => setTrainSequenceLength(event.target.value === '' ? 0 : Number(event.target.value))}
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 512) setTrainSequenceLength(512)
+                          }}
                         />
                       </label>
                       <label>
@@ -671,8 +884,11 @@ function App() {
                           type="number"
                           min={1}
                           max={64}
-                          value={microBatchSize}
-                          onChange={(event) => setMicroBatchSize(Number(event.target.value) || 1)}
+                          value={microBatchSize || ''}
+                          onChange={(event) => setMicroBatchSize(event.target.value === '' ? 0 : Number(event.target.value))}
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 1) setMicroBatchSize(1)
+                          }}
                         />
                       </label>
                     </div>
@@ -685,8 +901,11 @@ function App() {
                           min={4}
                           step={4}
                           max={256}
-                          value={loraRank}
-                          onChange={(event) => setLoraRank(Number(event.target.value) || 4)}
+                          value={loraRank || ''}
+                          onChange={(event) => setLoraRank(event.target.value === '' ? 0 : Number(event.target.value))}
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 4) setLoraRank(4)
+                          }}
                         />
                       </label>
                       <label className="checkbox-field">
@@ -747,6 +966,7 @@ function App() {
                   </span>
                   <p>{selectedGpu.summary}</p>
                   <p className="micro-note">{selectedGpu.notes}</p>
+                  {renderCloudInstances(selectedGpu, locale)}
                 </div>
               </div>
 
@@ -783,50 +1003,110 @@ function App() {
                   )}
                 </div>
 
-                <div className="field-grid two-up">
+                <div className="field-grid">
                   <label>
-                    {text.labels.contextPreset}
-                    <select
-                      value={contextPreset}
-                      onChange={(event) => {
-                        const nextPreset = event.target.value
-                        setContextPreset(nextPreset)
-                        if (nextPreset !== 'custom') {
-                          setContextTokens(Number(nextPreset))
-                        }
-                      }}
-                    >
+                    <div style={{ marginBottom: '8px' }}>{text.labels.contextPreset}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {contextPresetOptions.map((value) => (
-                        <option key={value} value={value}>
-                          {formatCompact(value)} tokens
-                        </option>
+                        <button
+                          key={value}
+                          type="button"
+                          className={contextPreset === String(value) ? 'active' : ''}
+                          onClick={() => {
+                            setContextPreset(String(value))
+                            setContextTokens(value)
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '16px',
+                            border: '1px solid var(--border-light, #e5e7eb)',
+                            background: contextPreset === String(value) ? 'var(--blue-500, #3b82f6)' : 'var(--bg-panel, #ffffff)',
+                            color: contextPreset === String(value) ? '#fff' : 'var(--text-main, #111827)',
+                            cursor: 'pointer',
+                            fontSize: '13px'
+                          }}
+                        >
+                          {formatCompact(value)}
+                        </button>
                       ))}
-                      <option value="custom">{text.labels.contextCustomOption}</option>
-                    </select>
+                      <button
+                        type="button"
+                        className={contextPreset === 'custom' ? 'active' : ''}
+                        onClick={() => setContextPreset('custom')}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '16px',
+                          border: '1px solid var(--border-light, #e5e7eb)',
+                          background: contextPreset === 'custom' ? 'var(--blue-500, #3b82f6)' : 'var(--bg-panel, #ffffff)',
+                          color: contextPreset === 'custom' ? '#fff' : 'var(--text-main, #111827)',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        {text.labels.contextCustomOption}
+                      </button>
+                    </div>
                   </label>
-                  <label>
-                    {contextPreset === 'custom' ? text.labels.customContextTokens : text.labels.currentContextTokens}
-                    <input
-                      type="number"
-                      min={1024}
-                      step={1024}
-                      value={contextTokens}
-                      disabled={contextPreset !== 'custom'}
-                      onChange={(event) => setContextTokens(Number(event.target.value) || 1024)}
-                    />
-                  </label>
+
+                  {contextPreset === 'custom' && (
+                    <label style={{ marginTop: '16px', display: 'block' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span>{text.labels.customContextTokens}</span>
+                        <strong>{contextTokens}</strong>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <input
+                          type="range"
+                          min={1024}
+                          max={1048576}
+                          step={1024}
+                          value={contextTokens || 1024}
+                          onChange={(event) => setContextTokens(Number(event.target.value))}
+                          style={{ flex: 1 }}
+                        />
+                        <input
+                          type="number"
+                          min={1024}
+                          step={1024}
+                          value={contextTokens || ''}
+                          onChange={(event) => setContextTokens(event.target.value === '' ? 0 : Number(event.target.value))}
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 1024) setContextTokens(1024)
+                          }}
+                          style={{ width: '100px' }}
+                        />
+                      </div>
+                    </label>
+                  )}
                 </div>
 
-                <div className="field-grid two-up">
+                <div className="field-grid">
                   <label>
-                    {text.labels.concurrency}
-                    <input
-                      type="number"
-                      min={1}
-                      max={128}
-                      value={concurrency}
-                      onChange={(event) => setConcurrency(Number(event.target.value) || 1)}
-                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span>{text.labels.concurrency}</span>
+                      <strong>{concurrency || 1}</strong>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <input
+                        type="range"
+                        min={1}
+                        max={128}
+                        value={concurrency || 1}
+                        onChange={(event) => setConcurrency(Number(event.target.value))}
+                        style={{ flex: 1 }}
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        max={1024}
+                        value={concurrency || ''}
+                        onChange={(event) => setConcurrency(event.target.value === '' ? 0 : Number(event.target.value))}
+                        onBlur={(event) => {
+                          if (!event.target.value || Number(event.target.value) < 1) setConcurrency(1)
+                        }}
+                        style={{ width: '80px' }}
+                      />
+                    </div>
                   </label>
                 </div>
 
@@ -865,8 +1145,11 @@ function App() {
                           type="number"
                           min={512}
                           step={512}
-                          value={trainSequenceLength}
-                          onChange={(event) => setTrainSequenceLength(Number(event.target.value) || 512)}
+                          value={trainSequenceLength || ''}
+                          onChange={(event) => setTrainSequenceLength(event.target.value === '' ? 0 : Number(event.target.value))}
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 512) setTrainSequenceLength(512)
+                          }}
                         />
                       </label>
                       <label>
@@ -875,8 +1158,11 @@ function App() {
                           type="number"
                           min={1}
                           max={64}
-                          value={microBatchSize}
-                          onChange={(event) => setMicroBatchSize(Number(event.target.value) || 1)}
+                          value={microBatchSize || ''}
+                          onChange={(event) => setMicroBatchSize(event.target.value === '' ? 0 : Number(event.target.value))}
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 1) setMicroBatchSize(1)
+                          }}
                         />
                       </label>
                     </div>
@@ -889,8 +1175,11 @@ function App() {
                           min={4}
                           step={4}
                           max={256}
-                          value={loraRank}
-                          onChange={(event) => setLoraRank(Number(event.target.value) || 4)}
+                          value={loraRank || ''}
+                          onChange={(event) => setLoraRank(event.target.value === '' ? 0 : Number(event.target.value))}
+                          onBlur={(event) => {
+                            if (!event.target.value || Number(event.target.value) < 4) setLoraRank(4)
+                          }}
                         />
                       </label>
                       <label className="checkbox-field">
@@ -1071,6 +1360,7 @@ function App() {
 
                                       <p>{item.gpu.summary}</p>
                                       <p className="micro-note">{item.rationale}</p>
+                                      {renderCloudInstances(item.gpu, locale)}
                                     </div>
                                   ) : null}
                                 </article>

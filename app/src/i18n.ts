@@ -15,7 +15,7 @@ export const messages = {
     eyebrow: 'LLM VRAM Calculator',
     heroTitle: 'LLM 显存计算器',
     heroDescription:
-      '内置多套模型、量化和 GPU 档案，支持从模型推部署，也支持从 GPU 倒推可跑模型。首版覆盖推理、LoRA 和 QLoRA 估算，并内含 A100、H100、H200、RTX PRO 6000 Blackwell、GB200 与 GB300 的推荐逻辑。',
+      '内置多套模型、量化和 GPU 档案，支持从模型推部署，也支持从 GPU 倒推可跑模型。当前覆盖推理、LoRA 和 QLoRA 估算，并内含 A100、H100、H200、B200、GB200、B300、GB300、NVIDIA RTX PRO 6000 Blackwell 等档位，以及 AWS、Azure、GCP、Oracle Cloud 的主流 GPU 实例映射。',
     language: '语言',
     languageOptions: {
       zh: '中文',
@@ -160,7 +160,7 @@ export const messages = {
     eyebrow: 'LLM VRAM Calculator',
     heroTitle: 'LLM VRAM Calculator',
     heroDescription:
-      'Built-in model, quantization, and GPU catalogs support both model-to-deployment sizing and GPU-to-model reverse planning. The first version covers inference, LoRA, and QLoRA estimation, with recommendations across A100, H100, H200, RTX PRO 6000 Blackwell, GB200, and GB300 tiers.',
+      'Built-in model, quantization, and GPU catalogs support both model-to-deployment sizing and GPU-to-model reverse planning. The app covers inference, LoRA, and QLoRA estimation across A100, H100, H200, B200, GB200, B300, GB300, NVIDIA RTX PRO 6000 Blackwell, and related tiers, with mainstream cloud instance mappings for AWS, Azure, GCP, and Oracle Cloud.',
     language: 'Language',
     languageOptions: {
       zh: '中文',

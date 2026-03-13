@@ -8,7 +8,16 @@ export type GpuCategory = 'single' | 'superchip' | 'platform'
 
 export type GpuFeature = 'fp8'
 
+export type CloudProvider = 'aws' | 'azure' | 'gcp' | 'oracle'
+
 export type QuantizationSupportLevel = 'supported' | 'conditional' | 'notRecommended'
+
+export interface CloudGpuInstance {
+  provider: CloudProvider
+  instanceType: string
+  memoryPerGpuGB: number
+  notes?: string
+}
 
 export interface QuantizationPreset {
   id: string
@@ -52,6 +61,7 @@ export interface GpuProfile {
   summary: string
   notes: string
   supportedGpuFeatures?: GpuFeature[]
+  cloudInstances?: CloudGpuInstance[]
 }
 
 export interface SizingInput {
